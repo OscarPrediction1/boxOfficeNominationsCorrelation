@@ -8,6 +8,7 @@ db = client.oscar
 for data in db.oscar_nominations.find():
 
 	# process a single year
+	print "\n"
 	print "Jahr", data["_id"]
 	print ""
 
@@ -21,7 +22,13 @@ for data in db.oscar_nominations.find():
 			# loop nominees
 			for nominee in data[key]:
 
+				line = "\t\t" + nominee["name"]
+
 				if(nominee["won"]):
-					print "\t\t", nominee["name"], u"\U0001F3C6"
-				else:
-					print "\t\t", nominee["name"]
+					line += u" \U0001F3C6"
+
+				boxOfficeData = db.boxoffice_movies.find_one({"name": nominee["name"]})
+				if boxOfficeData:
+					line += " $" + "{0:,}".format(boxOfficeData["totalGross"]).replace(",",".")
+
+				print line
