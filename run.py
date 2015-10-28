@@ -4,7 +4,7 @@ import db
 client = MongoClient(db.conn_string)
 db = client.oscar
 
-results = []
+results = [["year","oscar","name","won","gross","gross per day","playdays in year","release date"]]
 
 # find all nominees
 for data in db.oscar_nominations.find():
@@ -17,7 +17,7 @@ for data in db.oscar_nominations.find():
 			# loop nominees
 			for nominee in data[key]:
 
-				item = [str(data["_id"]), key, nominee["name"], str(nominee["won"])]
+				item = [str(data["_id"]), key, nominee["name"].replace(",", ""), str(nominee["won"])]
 				
 
 				boxOfficeData = db.boxoffice_movies.find_one({"name": nominee["name"]})
@@ -26,10 +26,27 @@ for data in db.oscar_nominations.find():
 					# calculate days till the end of the year
 					approxDaysItRan = 365 - boxOfficeData["release"].timetuple().tm_yday
 
-					item.append(str(boxOfficeData["totalGross"]))
+					lastDay = None
+
+					# find gross at the end of the year
+					if "history" in boxOfficeData:
+						for day in boxOfficeData["history"]:
+							lastDay = day
+
+							if day["date"].day == 31 and day["date"].month == 12 and day["date"].year == boxOfficeData["release"].year:
+								break
+
+					if lastDay:
+						item.append(str(lastDay["grossToDate"]))
+						item.append(str(int(lastDay["grossToDate"] / approxDaysItRan)))
+					else:
+						item.append("")
+						item.append("")
+
 					item.append(str(approxDaysItRan))
 					item.append(str(boxOfficeData["release"]))
 				else:
+					item.append("")
 					item.append("")
 					item.append("")
 					item.append("")
@@ -40,6 +57,6 @@ for row in results:
 	line = ""
 
 	for cell in row:
-		line += cell + ";"
+		line += cell + ","
 
 	print line
