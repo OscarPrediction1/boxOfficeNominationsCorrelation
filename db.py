@@ -1,1 +1,0 @@
-conn_string = "mongodb://oscar:0QOtOJx7YBnnPHiKV54V@23.102.28.222:27017/oscar"
