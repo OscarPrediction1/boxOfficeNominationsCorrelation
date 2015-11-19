@@ -4,7 +4,7 @@ import db
 client = MongoClient(db.conn_string)
 db = client.oscar
 
-results = [["year","oscar","name","won","gross","gross per day","playdays in year","release date"]]
+results = [["year","oscar","name","won","gross","gross per day","playdays","release date"]]
 
 # find all nominees
 for data in db.oscar_nominations.find():
