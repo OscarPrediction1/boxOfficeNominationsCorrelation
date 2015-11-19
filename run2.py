@@ -1,5 +1,5 @@
 from pymongo import MongoClient
-import db
+import db, sys
 
 client = MongoClient(db.conn_string)
 db = client.oscar
@@ -13,7 +13,12 @@ for data in db.oscar_nominations_extended.find():
 
 	if data["film"]:
 
-		boxOfficeData = db.boxoffice_movies.find_one({"name": data["film"]})
+		boxOfficeDatas = db.boxoffice_movies.find({"name": data["film"]})
+
+		for d in boxOfficeDatas:
+			if d["release"].year == data["year"]:
+				boxOfficeData = d
+
 		if boxOfficeData:
 
 			lastDay = None
@@ -40,7 +45,7 @@ for data in db.oscar_nominations_extended.find():
 			result += "1" + sep
 		else:
 			result += "0" + sep
-			
+
 		result += gross + sep
 		result += grossPerDate + sep
 		result += playDays + sep + releaseDate
