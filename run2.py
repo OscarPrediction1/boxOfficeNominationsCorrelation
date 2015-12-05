@@ -1,5 +1,7 @@
 from pymongo import MongoClient
 import db, sys, pymongo
+import os, json, requests, urllib, calendar, time
+from datetime import datetime
 
 client = MongoClient(db.conn_string)
 db = client.oscar
@@ -14,42 +16,53 @@ for data in db.oscar_nominations_extended.find():
 	if data["film"]:
 
 		boxOfficeData = None
-		boxOfficeDatas = db.boxoffice_movies.find({"name": data["film"]}).sort([("release", pymongo.ASCENDING)])
 
-		for d in boxOfficeDatas:
-			if d["release"].year == data["year"]:
-				boxOfficeData = d
+		try:
 
-		gross = ""
-		grossPerDate = ""
-		playDays = ""
-		releaseDate = ""
+			# fetch boxOfficeId
+			url_params = urllib.urlencode({"movie": data["film"], "year": str(data["year"])})
+			resp = requests.get(url="http://boxofficeid.thomasbrueggemann.com/?" + url_params)
+			boxOfficeData = json.loads(resp.text)
 
-		if boxOfficeData:
+			if len(boxOfficeData) == 1:
+				boxOfficeData = boxOfficeData[0]
 
-			lastDay = None
+				boxOfficeData["release"] = datetime.strptime(boxOfficeData["release"], "%Y-%m-%dT%H:%M:%S.000Z")
 
-			# find gross at the end of the year
-			if "history" in boxOfficeData:
-				lastDay = boxOfficeData["history"][-1]
+				boxOfficeData = boxOfficeData = db.boxoffice_movies.find_one({"boxOfficeId": boxOfficeData["boxOfficeId"]})
 
-			if lastDay:
-				gross = str(lastDay["grossToDate"])
-				grossPerDate = str(int(lastDay["grossToDate"] / int(lastDay["dayNumber"])))
-				playDays = str(lastDay["dayNumber"])
-			
-			releaseDate = str(boxOfficeData["release"])
+				gross = ""
+				grossPerDate = ""
+				playDays = ""
+				releaseDate = ""
 
-		result = str(data["year"]) + sep
-		result += data["film"] + sep
-		
-		if data["won"] == True:
-			result += "1" + sep
-		else:
-			result += "0" + sep
+				if boxOfficeData:
 
-		result += gross + sep
-		result += grossPerDate + sep
-		result += playDays + sep + releaseDate
+					lastDay = None
 
-		print result
+					# find gross at the end of the year
+					if "history" in boxOfficeData:
+						lastDay = boxOfficeData["history"][-1]
+
+					if lastDay:
+						gross = str(lastDay["grossToDate"])
+						grossPerDate = str(int(lastDay["grossToDate"] / int(lastDay["dayNumber"])))
+						playDays = str(lastDay["dayNumber"])
+					
+					releaseDate = str(boxOfficeData["release"])
+
+				result = str(data["year"]) + sep
+				result += boxOfficeData["boxOfficeId"] + sep
+				
+				if data["won"] == True:
+					result += "1" + sep
+				else:
+					result += "0" + sep
+
+				result += gross + sep
+				result += grossPerDate + sep
+				result += playDays + sep + releaseDate
+
+				print result
+		except:
+			pass
